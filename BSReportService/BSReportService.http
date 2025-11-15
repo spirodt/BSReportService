@@ -1,0 +1,15 @@
+@BSReportService_HostAddress = https://localhost:7145
+
+GET {{BSReportService_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
+
+POST {{BSReportService_HostAddress}}/api/report/export
+Content-Type: application/json
+
+{
+  //ExportReportRequest
+}
+
+###
