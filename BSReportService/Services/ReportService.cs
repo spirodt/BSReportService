@@ -1,9 +1,21 @@
 using BSReportService.Models;
+using BSReportService.BSReports;
+using DevExpress.XtraReports.UI;
+using System.IO;
 
 namespace BSReportService.Services;
 
 public class ReportService : IReportService
 {
+    private readonly IReportFactory _reportFactory;
+    private readonly ILogger<ReportService> _logger;
+
+    public ReportService(IReportFactory reportFactory, ILogger<ReportService> logger)
+    {
+        _reportFactory = reportFactory;
+        _logger = logger;
+    }
+
     public async Task<ExportReportResponse> ExportReportsToPdfAsync(ReportFilter filter, CancellationToken cancellationToken = default)
     {
         // Get documents based on filter (dummy implementation)
@@ -26,14 +38,10 @@ public class ReportService : IReportService
         // Dummy implementation - in real scenario, this would query a database or data source
         await Task.Delay(10, cancellationToken); // Simulate async operation
 
-        var allDocuments = GenerateDummyDocuments();
+        // Generate documents based on whether specific IDs are requested and the document type
+        var allDocuments = GenerateDummyDocuments(filter.DocumentIds, filter.DocumentType);
 
         var filteredDocuments = allDocuments.AsQueryable();
-
-        if (!string.IsNullOrEmpty(filter.DocumentType))
-        {
-            filteredDocuments = filteredDocuments.Where(d => d.DocumentType == filter.DocumentType);
-        }
 
         if (filter.StartDate.HasValue)
         {
@@ -50,58 +58,155 @@ public class ReportService : IReportService
             filteredDocuments = filteredDocuments.Where(d => d.Status == filter.Status);
         }
 
-        if (filter.DocumentIds != null && filter.DocumentIds.Any())
-        {
-            filteredDocuments = filteredDocuments.Where(d => filter.DocumentIds.Contains(d.DocumentId));
-        }
-
         return filteredDocuments.ToList();
     }
 
     private async Task<ReportDocument> ExportDocumentToPdfAsync(ReportDocument document, CancellationToken cancellationToken)
     {
-        // Dummy PDF export implementation
-        // In real scenario, this would generate actual PDF using a library like iTextSharp, PdfSharp, etc.
-        
-        // Simulate PDF generation time (varies per document)
-        var delayMs = Random.Shared.Next(100, 500);
-        await Task.Delay(delayMs, cancellationToken);
-
-        // Generate dummy PDF content (in real scenario, this would be actual PDF bytes)
-        var pdfContent = GenerateDummyPdfContent(document);
-
-        return new ReportDocument
+        try
         {
-            DocumentId = document.DocumentId,
-            DocumentType = document.DocumentType,
-            Status = document.Status,
-            CreatedDate = document.CreatedDate,
-            PdfContent = pdfContent
+            _logger.LogInformation("Generating PDF for document {DocumentId} of type {DocumentType}", 
+                document.DocumentId, document.DocumentType);
+
+            // Create the appropriate report based on document type
+            var report = _reportFactory.CreateReport(document.DocumentType);
+            
+            if (report == null)
+            {
+                _logger.LogWarning("No report template found for document type {DocumentType}. Using fallback.", 
+                    document.DocumentType);
+                
+                // Return document with null PDF content if no report template exists
+                return new ReportDocument
+                {
+                    DocumentId = document.DocumentId,
+                    DocumentType = document.DocumentType,
+                    Status = "Error: No report template",
+                    CreatedDate = document.CreatedDate,
+                    PdfContent = null
+                };
+            }
+
+            // Set report parameters if the report uses them
+            // For example, frmIspratnica has a "Faktura" parameter
+            if (report.Parameters.Count > 0)
+            {
+                // Try to set the first parameter with the document ID
+                // This is a simple example - in production, you'd map specific parameters
+                var firstParam = report.Parameters[0];
+                firstParam.Value = document.DocumentId;
+            }
+
+            // Set the data source for the report
+            // In a real scenario, this would be fetched from a database
+            var reportData = await GetReportDataAsync(document, cancellationToken);
+            report.DataSource = reportData;
+
+            // Generate PDF content using DevExpress export
+            byte[] pdfContent;
+            using (var memoryStream = new MemoryStream())
+            {
+                // Execute the report to bind data
+                await Task.Run(() => report.CreateDocument(), cancellationToken);
+                
+                // Export to PDF
+                await Task.Run(() => report.ExportToPdf(memoryStream), cancellationToken);
+                
+                pdfContent = memoryStream.ToArray();
+            }
+
+            _logger.LogInformation("Successfully generated PDF for document {DocumentId}, size: {Size} bytes", 
+                document.DocumentId, pdfContent.Length);
+
+            return new ReportDocument
+            {
+                DocumentId = document.DocumentId,
+                DocumentType = document.DocumentType,
+                Status = document.Status,
+                CreatedDate = document.CreatedDate,
+                PdfContent = pdfContent
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generating PDF for document {DocumentId}", document.DocumentId);
+            
+            return new ReportDocument
+            {
+                DocumentId = document.DocumentId,
+                DocumentType = document.DocumentType,
+                Status = $"Error: {ex.Message}",
+                CreatedDate = document.CreatedDate,
+                PdfContent = null
+            };
+        }
+    }
+
+    private async Task<object> GetReportDataAsync(ReportDocument document, CancellationToken cancellationToken)
+    {
+        // This is where you would fetch actual data from your database
+        // For now, return dummy data structure that matches the report's expected schema
+        
+        await Task.Delay(10, cancellationToken); // Simulate async database call
+
+        // Use the helper to create data based on document type
+        return document.DocumentType.ToLowerInvariant() switch
+        {
+            "ispratnica" => ReportDataHelper.CreateIspratnicaData(document.DocumentId, document.CreatedDate),
+            "invoice" => ReportDataHelper.CreateIspratnicaData(document.DocumentId, document.CreatedDate),
+            _ => ReportDataHelper.CreateCustomReportData(document.DocumentId, document.CreatedDate)
         };
     }
 
-    private byte[] GenerateDummyPdfContent(ReportDocument document)
-    {
-        // Dummy PDF content - in real implementation, this would generate actual PDF
-        // For now, return a simple byte array that represents PDF structure
-        var content = $"PDF content for document {document.DocumentId} of type {document.DocumentType}";
-        return System.Text.Encoding.UTF8.GetBytes(content);
-    }
-
-    private List<ReportDocument> GenerateDummyDocuments()
+    private List<ReportDocument> GenerateDummyDocuments(List<string>? specificIds = null, string? documentType = null)
     {
         // Generate dummy documents for testing
         var documents = new List<ReportDocument>();
+        var supportedTypes = _reportFactory.GetSupportedDocumentTypes().ToList();
 
-        for (int i = 1; i <= 10; i++)
+        // Determine which document type to use
+        string GetDocumentType(int index)
         {
-            documents.Add(new ReportDocument
+            if (!string.IsNullOrEmpty(documentType))
             {
-                DocumentId = $"doc{i}",
-                DocumentType = i % 2 == 0 ? "Invoice" : "Report",
-                Status = i % 3 == 0 ? "Active" : "Pending",
-                CreatedDate = DateTime.UtcNow.AddDays(-i)
-            });
+                return documentType; // Use the specified document type
+            }
+            
+            if (supportedTypes.Count > 0)
+            {
+                return supportedTypes[index % supportedTypes.Count];
+            }
+            
+            return "Unknown";
+        }
+
+        // If specific IDs are provided, generate only those documents
+        if (specificIds != null && specificIds.Any())
+        {
+            for (int i = 0; i < specificIds.Count; i++)
+            {
+                documents.Add(new ReportDocument
+                {
+                    DocumentId = specificIds[i],
+                    DocumentType = GetDocumentType(i),
+                    Status = i % 3 == 0 ? "Active" : "Pending",
+                    CreatedDate = DateTime.UtcNow.AddDays(-i)
+                });
+            }
+        }
+        else
+        {
+            // Generate default set of documents
+            for (int i = 1; i <= 10; i++)
+            {
+                documents.Add(new ReportDocument
+                {
+                    DocumentId = $"doc{i}",
+                    DocumentType = GetDocumentType(i),
+                    Status = i % 3 == 0 ? "Active" : "Pending",
+                    CreatedDate = DateTime.UtcNow.AddDays(-i)
+                });
+            }
         }
 
         return documents;
