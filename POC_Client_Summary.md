@@ -61,8 +61,27 @@ Benefits of this architecture:
   - Add authentication (e.g., Azure AD / OpenID Connect) for both the Blazor app and API.
   - Apply role-based access to sensitive reports and actions.
 - **Rollout strategy**:
-  - Start with high-value “view/export” flows.
+  - Start with high-value "view/export" flows.
   - Gradually replace targeted Access forms; keep niche workflows in Access until counterparts exist.
+
+## Docker containerization and CI/CD
+- **Docker support**: The application is fully containerized with single-file publishing for easy deployment.
+  - Multi-stage Dockerfile optimized for .NET 8 on Linux
+  - Docker Compose configuration for local development and testing
+  - Custom NuGet feed support (configured for `https://nuget.epodrum.mk/v3/index.json`)
+  - Single executable output (~50-100MB compressed) for simplified distribution
+- **GitHub Actions CI/CD pipelines**:
+  - **Automated testing**: Runs all unit and integration tests on every push/PR
+  - **Docker image builds**: Automatically builds and validates Docker images
+  - **Artifact publishing**: Saves Docker images as downloadable artifacts (30-day retention)
+  - **Optional GHCR publishing**: Can publish to GitHub Container Registry for version-tagged releases
+  - **Build caching**: Optimized with layer caching for faster subsequent builds
+- **Benefits**:
+  - Consistent deployment across environments (dev/test/production)
+  - Version-controlled infrastructure as code
+  - Automated quality gates before deployment
+  - Easy rollback to previous versions via artifacts
+  - No manual build/deployment steps required
 
 ## Suggested next steps
 1. Confirm licensing assumptions (Windows/SQL edition and expected editor vs. runtime Access users).
