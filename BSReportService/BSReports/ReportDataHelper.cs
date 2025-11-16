@@ -8,6 +8,64 @@ namespace BSReportService.BSReports;
 /// </summary>
 public static class ReportDataHelper
 {
+    public class IspratnicaItem
+    {
+        public string Artikal { get; set; }
+        public string AltSifa { get; set; }
+        public string EDM { get; set; }
+        public decimal Kolicina { get; set; }
+        public string Adresa { get; set; }
+        public string Telefon { get; set; }
+        public string ImeNaFirma { get; set; }
+        public string Naziv { get; set; }
+        public string Telefoni { get; set; }
+        public string Email { get; set; }
+        public string Sifra { get; set; }
+        public string EDB { get; set; }
+        public string Broj { get; set; }
+        public string Datum { get; set; }
+        public string Valuta { get; set; }
+        public string BankaDeponent { get; set; }
+        public string DanocenBroj { get; set; }
+        public string Zabeleska { get; set; }
+        public byte[] Image1 { get; set; }
+    }
+    
+
+    public static List<IspratnicaItem> CreateIspratnicaMainData(string documentId, DateTime createdDate)
+    {
+        var data = new List<IspratnicaItem>();
+
+        for (int i = 1; i <= 3; i++)
+        {
+            data.Add(new IspratnicaItem
+            {
+                Artikal = $"Sample Product {i}",
+                AltSifa = $"SP00{i}",
+                EDM = "pc",
+                Kolicina = i * 5,
+                Adresa = "123 Main St, Skopje",
+                Telefon = "+389 2 123 4567",
+                ImeNaFirma = "Sample Company DOOEL",
+                Naziv = "Customer Name Ltd.",
+                Telefoni = "+389 70 123 456",
+                Email = "customer@example.com",
+                Sifra = "CUST001",
+                EDB = "4080012345678",
+                Broj = documentId,
+                Datum = createdDate.ToString("dd.MM.yyyy"),
+                Valuta = DateTime.Now.AddDays(30).ToString("dd.MM.yyyy"),
+                BankaDeponent = "Komercijalna Banka AD Skopje - 300123456789012",
+                DanocenBroj = "MK1234567890123",
+                Zabeleska = "Sample notes for this delivery note. Please handle with care.",
+                Image1 = null
+            });
+        }
+
+        return data;
+    }
+
+
     /// <summary>
     /// Creates sample data for Ispratnica (delivery note) report.
     /// </summary>

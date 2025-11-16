@@ -30,15 +30,12 @@
         {
             DevExpress.XtraReports.UI.XRSummary xrSummary1 = new DevExpress.XtraReports.UI.XRSummary();
             this.Area3 = new DevExpress.XtraReports.UI.DetailBand();
-            this.Area1 = new DevExpress.XtraReports.UI.ReportHeaderBand();
-            this.Area2 = new DevExpress.XtraReports.UI.PageHeaderBand();
-            this.Area4 = new DevExpress.XtraReports.UI.ReportFooterBand();
-            this.Area5 = new DevExpress.XtraReports.UI.PageFooterBand();
             this.Artikal1 = new DevExpress.XtraReports.UI.XRLabel();
             this.EDM1 = new DevExpress.XtraReports.UI.XRLabel();
             this.Kolicina1 = new DevExpress.XtraReports.UI.XRLabel();
             this.RecordNumber1 = new DevExpress.XtraReports.UI.XRLabel();
             this.AltSifa1 = new DevExpress.XtraReports.UI.XRLabel();
+            this.Area1 = new DevExpress.XtraReports.UI.ReportHeaderBand();
             this.Line1 = new DevExpress.XtraReports.UI.XRLine();
             this.Line2 = new DevExpress.XtraReports.UI.XRLine();
             this.Adresa1 = new DevExpress.XtraReports.UI.XRLabel();
@@ -49,6 +46,7 @@
             this.BankaDeponent1 = new DevExpress.XtraReports.UI.XRLabel();
             this.Text2 = new DevExpress.XtraReports.UI.XRLabel();
             this.DanocenBroj1 = new DevExpress.XtraReports.UI.XRLabel();
+            this.Area2 = new DevExpress.XtraReports.UI.PageHeaderBand();
             this.Text6 = new DevExpress.XtraReports.UI.XRLabel();
             this.Broj1 = new DevExpress.XtraReports.UI.XRLabel();
             this.Datum1 = new DevExpress.XtraReports.UI.XRLabel();
@@ -67,9 +65,11 @@
             this.Text4 = new DevExpress.XtraReports.UI.XRLabel();
             this.Valuta1 = new DevExpress.XtraReports.UI.XRLabel();
             this.Text9 = new DevExpress.XtraReports.UI.XRLabel();
+            this.Area4 = new DevExpress.XtraReports.UI.ReportFooterBand();
             this.CountofArtikal1 = new DevExpress.XtraReports.UI.XRLabel();
             this.Text17 = new DevExpress.XtraReports.UI.XRLabel();
             this.Zabeleska1 = new DevExpress.XtraReports.UI.XRLabel();
+            this.Area5 = new DevExpress.XtraReports.UI.PageFooterBand();
             this.Text7 = new DevExpress.XtraReports.UI.XRLabel();
             this.Text8 = new DevExpress.XtraReports.UI.XRLabel();
             this.Line3 = new DevExpress.XtraReports.UI.XRLine();
@@ -81,6 +81,8 @@
             this.Box3 = new DevExpress.XtraReports.UI.XRCrossBandBox();
             this.Rabat = new DevExpress.XtraReports.UI.CalculatedField();
             this.Faktura = new DevExpress.XtraReports.Parameters.Parameter();
+            this.topMarginBand1 = new DevExpress.XtraReports.UI.TopMarginBand();
+            this.bottomMarginBand1 = new DevExpress.XtraReports.UI.BottomMarginBand();
             ((System.ComponentModel.ISupportInitialize)(this)).BeginInit();
             // 
             // Area3
@@ -96,77 +98,6 @@
             this.Area3.Name = "Area3";
             this.Area3.Padding = new DevExpress.XtraPrinting.PaddingInfo(0, 0, 0, 0, 100F);
             this.Area3.TextAlignment = DevExpress.XtraPrinting.TextAlignment.TopLeft;
-            // 
-            // Area1
-            // 
-            this.Area1.Controls.AddRange(new DevExpress.XtraReports.UI.XRControl[] {
-            this.Line1,
-            this.Line2,
-            this.Adresa1,
-            this.Telefon1,
-            this.ImeNaFirma1,
-            this.Image11,
-            this.Text1,
-            this.BankaDeponent1,
-            this.Text2,
-            this.DanocenBroj1});
-            this.Area1.HeightF = 168F;
-            this.Area1.KeepTogether = true;
-            this.Area1.Name = "Area1";
-            this.Area1.Padding = new DevExpress.XtraPrinting.PaddingInfo(0, 0, 0, 0, 100F);
-            this.Area1.TextAlignment = DevExpress.XtraPrinting.TextAlignment.TopLeft;
-            // 
-            // Area2
-            // 
-            this.Area2.Controls.AddRange(new DevExpress.XtraReports.UI.XRControl[] {
-            this.Text6,
-            this.Broj1,
-            this.Datum1,
-            this.Text10,
-            this.Text13,
-            this.Text18,
-            this.Text19,
-            this.Naziv1,
-            this.Adresa2,
-            this.Telefoni1,
-            this.Text3,
-            this.Email1,
-            this.Sifra1,
-            this.EDB1,
-            this.Faktura1,
-            this.Text4,
-            this.Valuta1,
-            this.Text9});
-            this.Area2.HeightF = 165F;
-            this.Area2.Name = "Area2";
-            this.Area2.Padding = new DevExpress.XtraPrinting.PaddingInfo(0, 0, 0, 0, 100F);
-            this.Area2.TextAlignment = DevExpress.XtraPrinting.TextAlignment.TopLeft;
-            // 
-            // Area4
-            // 
-            this.Area4.Controls.AddRange(new DevExpress.XtraReports.UI.XRControl[] {
-            this.CountofArtikal1,
-            this.Text17,
-            this.Zabeleska1});
-            this.Area4.HeightF = 105F;
-            this.Area4.KeepTogether = true;
-            this.Area4.Name = "Area4";
-            this.Area4.Padding = new DevExpress.XtraPrinting.PaddingInfo(0, 0, 0, 0, 100F);
-            this.Area4.TextAlignment = DevExpress.XtraPrinting.TextAlignment.TopLeft;
-            // 
-            // Area5
-            // 
-            this.Area5.Controls.AddRange(new DevExpress.XtraReports.UI.XRControl[] {
-            this.Text7,
-            this.Text8,
-            this.Line3,
-            this.Line4,
-            this.Line5,
-            this.Line6});
-            this.Area5.HeightF = 125F;
-            this.Area5.Name = "Area5";
-            this.Area5.Padding = new DevExpress.XtraPrinting.PaddingInfo(0, 0, 0, 0, 100F);
-            this.Area5.TextAlignment = DevExpress.XtraPrinting.TextAlignment.TopLeft;
             // 
             // Artikal1
             // 
@@ -251,6 +182,25 @@
             this.AltSifa1.Padding = new DevExpress.XtraPrinting.PaddingInfo(2, 2, 0, 0, 100F);
             this.AltSifa1.SizeF = new System.Drawing.SizeF(103.125F, 15.34722F);
             this.AltSifa1.TextAlignment = DevExpress.XtraPrinting.TextAlignment.TopRight;
+            // 
+            // Area1
+            // 
+            this.Area1.Controls.AddRange(new DevExpress.XtraReports.UI.XRControl[] {
+            this.Line1,
+            this.Line2,
+            this.Adresa1,
+            this.Telefon1,
+            this.ImeNaFirma1,
+            this.Image11,
+            this.Text1,
+            this.BankaDeponent1,
+            this.Text2,
+            this.DanocenBroj1});
+            this.Area1.HeightF = 168F;
+            this.Area1.KeepTogether = true;
+            this.Area1.Name = "Area1";
+            this.Area1.Padding = new DevExpress.XtraPrinting.PaddingInfo(0, 0, 0, 0, 100F);
+            this.Area1.TextAlignment = DevExpress.XtraPrinting.TextAlignment.TopLeft;
             // 
             // Line1
             // 
@@ -411,6 +361,32 @@
             this.DanocenBroj1.Padding = new DevExpress.XtraPrinting.PaddingInfo(2, 2, 0, 0, 100F);
             this.DanocenBroj1.SizeF = new System.Drawing.SizeF(191.6667F, 15.34722F);
             this.DanocenBroj1.TextAlignment = DevExpress.XtraPrinting.TextAlignment.TopLeft;
+            // 
+            // Area2
+            // 
+            this.Area2.Controls.AddRange(new DevExpress.XtraReports.UI.XRControl[] {
+            this.Text6,
+            this.Broj1,
+            this.Datum1,
+            this.Text10,
+            this.Text13,
+            this.Text18,
+            this.Text19,
+            this.Naziv1,
+            this.Adresa2,
+            this.Telefoni1,
+            this.Text3,
+            this.Email1,
+            this.Sifra1,
+            this.EDB1,
+            this.Faktura1,
+            this.Text4,
+            this.Valuta1,
+            this.Text9});
+            this.Area2.HeightF = 165F;
+            this.Area2.Name = "Area2";
+            this.Area2.Padding = new DevExpress.XtraPrinting.PaddingInfo(0, 0, 0, 0, 100F);
+            this.Area2.TextAlignment = DevExpress.XtraPrinting.TextAlignment.TopLeft;
             // 
             // Text6
             // 
@@ -710,6 +686,18 @@
             this.Text9.Text = "Шифра";
             this.Text9.TextAlignment = DevExpress.XtraPrinting.TextAlignment.TopLeft;
             // 
+            // Area4
+            // 
+            this.Area4.Controls.AddRange(new DevExpress.XtraReports.UI.XRControl[] {
+            this.CountofArtikal1,
+            this.Text17,
+            this.Zabeleska1});
+            this.Area4.HeightF = 105F;
+            this.Area4.KeepTogether = true;
+            this.Area4.Name = "Area4";
+            this.Area4.Padding = new DevExpress.XtraPrinting.PaddingInfo(0, 0, 0, 0, 100F);
+            this.Area4.TextAlignment = DevExpress.XtraPrinting.TextAlignment.TopLeft;
+            // 
             // CountofArtikal1
             // 
             this.CountofArtikal1.BackColor = System.Drawing.Color.Transparent;
@@ -761,6 +749,20 @@
             this.Zabeleska1.Padding = new DevExpress.XtraPrinting.PaddingInfo(2, 2, 0, 0, 100F);
             this.Zabeleska1.SizeF = new System.Drawing.SizeF(783.3333F, 50F);
             this.Zabeleska1.TextAlignment = DevExpress.XtraPrinting.TextAlignment.TopLeft;
+            // 
+            // Area5
+            // 
+            this.Area5.Controls.AddRange(new DevExpress.XtraReports.UI.XRControl[] {
+            this.Text7,
+            this.Text8,
+            this.Line3,
+            this.Line4,
+            this.Line5,
+            this.Line6});
+            this.Area5.HeightF = 125F;
+            this.Area5.Name = "Area5";
+            this.Area5.Padding = new DevExpress.XtraPrinting.PaddingInfo(0, 0, 0, 0, 100F);
+            this.Area5.TextAlignment = DevExpress.XtraPrinting.TextAlignment.TopLeft;
             // 
             // Text7
             // 
@@ -892,14 +894,26 @@
             this.Faktura.Description = "Enter Faktura:";
             this.Faktura.Name = "Faktura";
             // 
-            // Report1
+            // topMarginBand1
+            // 
+            this.topMarginBand1.HeightF = 16F;
+            this.topMarginBand1.Name = "topMarginBand1";
+            // 
+            // bottomMarginBand1
+            // 
+            this.bottomMarginBand1.HeightF = 16F;
+            this.bottomMarginBand1.Name = "bottomMarginBand1";
+            // 
+            // frmIspratnica
             // 
             this.Bands.AddRange(new DevExpress.XtraReports.UI.Band[] {
             this.Area3,
             this.Area1,
             this.Area2,
             this.Area4,
-            this.Area5});
+            this.Area5,
+            this.topMarginBand1,
+            this.bottomMarginBand1});
             this.CalculatedFields.AddRange(new DevExpress.XtraReports.UI.CalculatedField[] {
             this.Rabat});
             this.CrossBandControls.AddRange(new DevExpress.XtraReports.UI.XRCrossBandControl[] {
@@ -971,5 +985,7 @@
         private DevExpress.XtraReports.UI.XRCrossBandBox Box3;
         private DevExpress.XtraReports.UI.CalculatedField Rabat;
         private DevExpress.XtraReports.Parameters.Parameter Faktura;
+        private DevExpress.XtraReports.UI.TopMarginBand topMarginBand1;
+        private DevExpress.XtraReports.UI.BottomMarginBand bottomMarginBand1;
     }
 }

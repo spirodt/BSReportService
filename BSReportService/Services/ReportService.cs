@@ -1,7 +1,6 @@
-using BSReportService.Models;
 using BSReportService.BSReports;
-using DevExpress.XtraReports.UI;
-using System.IO;
+using BSReportService.Models;
+using DevExpress.ReportServer.ServiceModel.DataContracts;
 
 namespace BSReportService.Services;
 
@@ -38,7 +37,7 @@ public class ReportService : IReportService
         // Dummy implementation - in real scenario, this would query a database or data source
         await Task.Delay(10, cancellationToken); // Simulate async operation
 
-        // Generate documents based on whether specific IDs are requested and the document type
+        // Generate documents based on whether specific ID's are requested and the document type
         var allDocuments = GenerateDummyDocuments(filter.DocumentIds, filter.DocumentType);
 
         var filteredDocuments = allDocuments.AsQueryable();
@@ -100,7 +99,8 @@ public class ReportService : IReportService
             // Set the data source for the report
             // In a real scenario, this would be fetched from a database
             var reportData = await GetReportDataAsync(document, cancellationToken);
-            report.DataSource = reportData;
+                report.DataSource = reportData;
+            report.DataMember = ""; // Assuming the main data member is ""
 
             // Generate PDF content using DevExpress export
             byte[] pdfContent;
@@ -111,7 +111,7 @@ public class ReportService : IReportService
                 
                 // Export to PDF
                 await Task.Run(() => report.ExportToPdf(memoryStream), cancellationToken);
-                
+                await Task.Run(() => report.ExportToPdf($"C:\\test\\{Guid.NewGuid()}_.pdf"), cancellationToken);
                 pdfContent = memoryStream.ToArray();
             }
 
@@ -142,6 +142,8 @@ public class ReportService : IReportService
         }
     }
 
+   
+
     private async Task<object> GetReportDataAsync(ReportDocument document, CancellationToken cancellationToken)
     {
         // This is where you would fetch actual data from your database
@@ -152,7 +154,7 @@ public class ReportService : IReportService
         // Use the helper to create data based on document type
         return document.DocumentType.ToLowerInvariant() switch
         {
-            "ispratnica" => ReportDataHelper.CreateIspratnicaData(document.DocumentId, document.CreatedDate),
+            "ispratnica" => ReportDataHelper.CreateIspratnicaMainData(document.DocumentId, document.CreatedDate),
             "invoice" => ReportDataHelper.CreateIspratnicaData(document.DocumentId, document.CreatedDate),
             _ => ReportDataHelper.CreateCustomReportData(document.DocumentId, document.CreatedDate)
         };
