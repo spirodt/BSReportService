@@ -1,6 +1,9 @@
 using BSReportService.BSReports;
 using BSReportService.Models;
 using DevExpress.ReportServer.ServiceModel.DataContracts;
+using System.Data;
+using System.Text;
+using System.Xml;
 
 namespace BSReportService.Services;
 
@@ -212,5 +215,222 @@ public class ReportService : IReportService
         }
 
         return documents;
+    }
+
+    public async Task<ExportSingleReportResponse> ExportSingleReportToPdfAsync(
+        ExportSingleReportRequest request, 
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            _logger.LogInformation("Starting single report export for type: {ReportType}", request.ReportType);
+
+            // Create the report based on type
+            var report = _reportFactory.CreateReport(request.ReportType);
+            if (report == null)
+            {
+                _logger.LogWarning("Report type '{ReportType}' not found", request.ReportType);
+                return new ExportSingleReportResponse
+                {
+                    ReportType = request.ReportType,
+                    Status = "Error",
+                    ErrorMessage = $"Report type '{request.ReportType}' not found"
+                };
+            }
+
+            // Process XML data if provided
+            object? reportData = null;
+            if (!string.IsNullOrEmpty(request.XmlDataBase64))
+            {
+                try
+                {
+                    _logger.LogInformation("Decoding and parsing XML data");
+                    var xmlBytes = Convert.FromBase64String(request.XmlDataBase64);
+                    var xmlString = Encoding.UTF8.GetString(xmlBytes);
+                    
+                    // Parse XML to DataSet for DevExpress reports
+                    reportData = ParseXmlToDataSet(xmlString);
+                    _logger.LogInformation("Successfully parsed XML data");
+                }
+                catch (FormatException ex)
+                {
+                    _logger.LogError(ex, "Invalid base64 string in XmlDataBase64");
+                    throw new FormatException("Invalid base64 string", ex);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to parse XML data");
+                    return new ExportSingleReportResponse
+                    {
+                        ReportType = request.ReportType,
+                        Status = "Error",
+                        ErrorMessage = $"Failed to parse XML data: {ex.Message}"
+                    };
+                }
+            }
+            else
+            {
+                // Use parameters to create dummy data if no XML provided
+                _logger.LogInformation("No XML data provided, using parameters");
+                var documentId = request.Parameters?.GetValueOrDefault("DocumentId") ?? "DEFAULT-001";
+                reportData = CreateDataFromParameters(request.ReportType, request.Parameters);
+            }
+
+            // Set the data source for the report
+            if (reportData != null)
+            {
+                report.DataSource = reportData;
+                report.DataMember = reportData is DataSet ds && ds.Tables.Count > 0 ? ds.Tables[0].TableName : string.Empty;
+            }
+
+            // Apply report parameters
+            if (request.Parameters != null && report.Parameters.Count > 0)
+            {
+                foreach (var param in request.Parameters)
+                {
+                    if (report.Parameters[param.Key] != null)
+                    {
+                        report.Parameters[param.Key].Value = param.Value;
+                        _logger.LogInformation("Set parameter {ParamName} = {ParamValue}", param.Key, param.Value);
+                    }
+                }
+            }
+
+            // Generate PDF
+            byte[] pdfContent;
+            using (var memoryStream = new MemoryStream())
+            {
+                // Execute the report to bind data
+                await Task.Run(() => report.CreateDocument(), cancellationToken);
+                
+                // Export to PDF
+                await Task.Run(() => report.ExportToPdf(memoryStream), cancellationToken);
+                pdfContent = memoryStream.ToArray();
+            }
+
+            _logger.LogInformation("Successfully generated PDF, size: {Size} bytes", pdfContent.Length);
+
+            // Save to file if output path is specified
+            string? savedPath = null;
+            if (!string.IsNullOrEmpty(request.OutputPath))
+            {
+                try
+                {
+                    // Ensure directory exists
+                    var directory = Path.GetDirectoryName(request.OutputPath);
+                    if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
+                    {
+                        Directory.CreateDirectory(directory);
+                    }
+
+                    await File.WriteAllBytesAsync(request.OutputPath, pdfContent, cancellationToken);
+                    savedPath = request.OutputPath;
+                    _logger.LogInformation("Saved PDF to: {FilePath}", request.OutputPath);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to save PDF to file: {FilePath}", request.OutputPath);
+                    return new ExportSingleReportResponse
+                    {
+                        ReportType = request.ReportType,
+                        Status = "Error",
+                        ErrorMessage = $"Failed to save file: {ex.Message}",
+                        PdfContent = pdfContent,
+                        PdfSizeBytes = pdfContent.Length
+                    };
+                }
+            }
+
+            // Return successful response
+            return new ExportSingleReportResponse
+            {
+                ReportType = request.ReportType,
+                PdfContent = pdfContent,
+                PdfContentBase64 = Convert.ToBase64String(pdfContent),
+                SavedFilePath = savedPath,
+                PdfSizeBytes = pdfContent.Length,
+                Status = "Success",
+                GeneratedDate = DateTime.UtcNow
+            };
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogWarning("Single report export was cancelled");
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error occurred during single report export");
+            return new ExportSingleReportResponse
+            {
+                ReportType = request.ReportType,
+                Status = "Error",
+                ErrorMessage = $"An error occurred: {ex.Message}"
+            };
+        }
+    }
+
+    private DataSet ParseXmlToDataSet(string xmlString)
+    {
+        var dataSet = new DataSet();
+        
+        using (var stringReader = new StringReader(xmlString))
+        using (var xmlReader = XmlReader.Create(stringReader))
+        {
+            dataSet.ReadXml(xmlReader);
+        }
+
+        return dataSet;
+    }
+
+    private object CreateDataFromParameters(string reportType, Dictionary<string, string>? parameters)
+    {
+        // Create a simple DataSet with parameters as a table
+        var dataSet = new DataSet("ReportData");
+        var table = new DataTable("Header");
+
+        // Add columns
+        table.Columns.Add("DocumentId", typeof(string));
+        table.Columns.Add("CreatedDate", typeof(DateTime));
+
+        if (parameters != null)
+        {
+            foreach (var param in parameters)
+            {
+                if (!table.Columns.Contains(param.Key))
+                {
+                    table.Columns.Add(param.Key, typeof(string));
+                }
+            }
+        }
+
+        // Add a row
+        var row = table.NewRow();
+        row["DocumentId"] = parameters?.GetValueOrDefault("DocumentId") ?? "DEFAULT-001";
+        row["CreatedDate"] = DateTime.UtcNow;
+
+        if (parameters != null)
+        {
+            foreach (var param in parameters)
+            {
+                if (param.Key != "DocumentId" && table.Columns.Contains(param.Key))
+                {
+                    row[param.Key] = param.Value;
+                }
+            }
+        }
+
+        table.Rows.Add(row);
+        dataSet.Tables.Add(table);
+
+        // Add an empty items table for reports that expect it
+        var itemsTable = new DataTable("Items");
+        itemsTable.Columns.Add("ItemId", typeof(string));
+        itemsTable.Columns.Add("Name", typeof(string));
+        itemsTable.Columns.Add("Quantity", typeof(int));
+        itemsTable.Columns.Add("Price", typeof(decimal));
+        dataSet.Tables.Add(itemsTable);
+
+        return dataSet;
     }
 }

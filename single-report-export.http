@@ -1,0 +1,148 @@
+### Single Report Export API Examples
+### Use with REST Client extension in VS Code or similar tools
+
+@baseUrl = https://localhost:7218/api/report
+
+### 1. Export single report with parameters
+POST {{baseUrl}}/export-single
+Content-Type: application/json
+
+{
+  "reportType": "Ispratnica",
+  "outputPath": "C:\\Reports\\Invoice_001.pdf",
+  "parameters": {
+    "DocumentId": "INV-001",
+    "CompanyName": "Test Company"
+  }
+}
+
+### 2. Export single report with XML data (Base64 encoded)
+# XML: <?xml version="1.0" encoding="UTF-8"?><ReportData><DocumentId>INV-001</DocumentId></ReportData>
+POST {{baseUrl}}/export-single
+Content-Type: application/json
+
+{
+  "reportType": "Ispratnica",
+  "outputPath": "C:\\Reports\\Invoice_002.pdf",
+  "xmlDataBase64": "PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPFJlcG9ydERhdGE+CiAgPERvY3VtZW50SWQ+SU5WLTAwMTwvRG9jdW1lbnRJZD4KPC9SZXBvcnREYXRhPg=="
+}
+
+### 3. Export single report with complex XML data
+# XML with multiple items
+POST {{baseUrl}}/export-single
+Content-Type: application/json
+
+{
+  "reportType": "Ispratnica",
+  "outputPath": "C:\\Reports\\Invoice_003.pdf",
+  "xmlDataBase64": "PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPFJlcG9ydERhdGE+CiAgPEhlYWRlcj4KICAgIDxEb2N1bWVudElkPklOVi0wMDE8L0RvY3VtZW50SWQ+CiAgICA8Q29tcGFueU5hbWU+VGVzdCBDb21wYW55IEx0ZC48L0NvbXBhbnlOYW1lPgogICAgPERhdGU+MjAyNC0wMS0xNTwvRGF0ZT4KICA8L0hlYWRlcj4KICA8SXRlbXM+CiAgICA8SXRlbT4KICAgICAgPE5hbWU+UHJvZHVjdCAxPC9OYW1lPgogICAgICA8UXVhbnRpdHk+MTA8L1F1YW50aXR5PgogICAgICA8UHJpY2U+MTAwLjAwPC9QcmljZT4KICAgIDwvSXRlbT4KICAgIDxJdGVtPgogICAgICA8TmFtZT5Qcm9kdWN0IDI8L05hbWU+CiAgICAgIDxRdWFudGl0eT41PC9RdWFudGl0eT4KICAgICAgPFByaWNlPjUwLjAwPC9QcmljZT4KICAgIDwvSXRlbT4KICA8L0l0ZW1zPgo8L1JlcG9ydERhdGE+"
+}
+
+### 4. Export without saving to file (get PDF in response only)
+POST {{baseUrl}}/export-single
+Content-Type: application/json
+
+{
+  "reportType": "Ispratnica",
+  "parameters": {
+    "DocumentId": "INV-004"
+  }
+}
+
+### 5. Export with both XML data and parameters
+POST {{baseUrl}}/export-single
+Content-Type: application/json
+
+{
+  "reportType": "Ispratnica",
+  "outputPath": "C:\\Reports\\Invoice_005.pdf",
+  "xmlDataBase64": "PD94bWwgdmVyc2lvbj0iMS4wIj8+CjxSZXBvcnREYXRhPgogIDxEb2N1bWVudElkPklOVi0wMDU8L0RvY3VtZW50SWQ+CjwvUmVwb3J0RGF0YT4=",
+  "parameters": {
+    "DocumentId": "INV-005",
+    "CompanyName": "Another Company"
+  }
+}
+
+### 6. Test with invalid report type (should return error in response body)
+POST {{baseUrl}}/export-single
+Content-Type: application/json
+
+{
+  "reportType": "NonExistentReportType",
+  "parameters": {
+    "DocumentId": "TEST-001"
+  }
+}
+
+### 7. Test with empty report type (should return 400 Bad Request)
+POST {{baseUrl}}/export-single
+Content-Type: application/json
+
+{
+  "reportType": "",
+  "parameters": {
+    "DocumentId": "TEST-002"
+  }
+}
+
+### 8. Test with invalid Base64 (should return error in response body)
+POST {{baseUrl}}/export-single
+Content-Type: application/json
+
+{
+  "reportType": "Ispratnica",
+  "xmlDataBase64": "invalid-base64-string!@#$%"
+}
+
+### 9. Export to a temporary directory
+POST {{baseUrl}}/export-single
+Content-Type: application/json
+
+{
+  "reportType": "Ispratnica",
+  "outputPath": "C:\\Temp\\Report_{{$timestamp}}.pdf",
+  "parameters": {
+    "DocumentId": "TEMP-001"
+  }
+}
+
+### 10. Large XML data with many items
+POST {{baseUrl}}/export-single
+Content-Type: application/json
+
+{
+  "reportType": "Ispratnica",
+  "xmlDataBase64": "PD94bWwgdmVyc2lvbj0iMS4wIj8+CjxSZXBvcnREYXRhPgogIDxIZWFkZXI+CiAgICA8RG9jdW1lbnRJZD5JTlYtTEFSR0U8L0RvY3VtZW50SWQ+CiAgICA8Q29tcGFueU5hbWU+TGFyZ2UgT3JkZXIgQ29tcGFueTwvQ29tcGFueU5hbWU+CiAgPC9IZWFkZXI+CiAgPEl0ZW1zPgogICAgPEl0ZW0+PE5hbWU+UHJvZHVjdCAxPC9OYW1lPjxRdWFudGl0eT4xMDA8L1F1YW50aXR5PjxQcmljZT4xMC4wMDwvUHJpY2U+PC9JdGVtPgogICAgPEl0ZW0+PE5hbWU+UHJvZHVjdCAyPC9OYW1lPjxRdWFudGl0eT41MDwvUXVhbnRpdHk+PFByaWNlPjIwLjAwPC9QcmljZT48L0l0ZW0+CiAgICA8SXRlbT48TmFtZT5Qcm9kdWN0IDM8L05hbWU+PFF1YW50aXR5PjMwPC9RdWFudGl0eT48UHJpY2U+MzAuMDA8L1ByaWNlPjwvSXRlbT4KICAgIDxJdGVtPjxOYW1lPlByb2R1Y3QgNDwvTmFtZT48UXVhbnRpdHk+MjA8L1F1YW50aXR5PjxQcmljZT40MC4wMDwvUHJpY2U+PC9JdGVtPgogICAgPEl0ZW0+PE5hbWU+UHJvZHVjdCA1PC9OYW1lPjxRdWFudGl0eT4xMDwvUXVhbnRpdHk+PFByaWNlPjUwLjAwPC9QcmljZT48L0l0ZW0+CiAgPC9JdGVtcz4KPC9SZXBvcnREYXRhPg=="
+}
+
+###
+# Additional Notes:
+# 
+# 1. The xmlDataBase64 field should contain Base64-encoded XML data
+# 2. If outputPath is provided, the PDF will be saved to that location
+# 3. The response will always contain the PDF in both binary and Base64 format
+# 4. Parameters are optional and can be used instead of or alongside XML data
+# 5. Report types must match the registered report types in the factory
+#
+# XML Structure Example:
+# <?xml version="1.0" encoding="UTF-8"?>
+# <ReportData>
+#   <Header>
+#     <DocumentId>INV-001</DocumentId>
+#     <CompanyName>Test Company</CompanyName>
+#   </Header>
+#   <Items>
+#     <Item>
+#       <Name>Product Name</Name>
+#       <Quantity>10</Quantity>
+#       <Price>100.00</Price>
+#     </Item>
+#   </Items>
+# </ReportData>
+#
+# To encode XML to Base64 in PowerShell:
+# [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($xmlString))
+#
+# To decode Base64 in PowerShell:
+# [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($base64String))
+
