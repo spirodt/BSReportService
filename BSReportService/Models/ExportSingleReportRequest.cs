@@ -29,6 +29,14 @@ public class ExportSingleReportRequest
     public string? XmlDataBase64 { get; set; }
 
     /// <summary>
+    /// Base64-encoded JSON data containing the report data.
+    /// This is an alternative to XML data for modern applications.
+    /// The JSON should match the expected schema for the specific report type.
+    /// </summary>
+    /// <example>eyJEb2N1bWVudElkIjoiSU5WLTAwMSIsIkl0ZW1zIjpbXX0=</example>
+    public string? JsonDataBase64 { get; set; }
+
+    /// <summary>
     /// Optional parameters for the report (e.g., document ID, filter values).
     /// </summary>
     public Dictionary<string, string>? Parameters { get; set; }

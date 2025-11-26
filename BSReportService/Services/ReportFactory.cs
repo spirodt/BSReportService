@@ -23,9 +23,10 @@ public class ReportFactory : IReportFactory
         _reportMappings = new Dictionary<string, Func<XtraReport>>(StringComparer.OrdinalIgnoreCase)
         {
             { "Ispratnica", () => new frmIspratnica() },
-            { "Invoice", () => new frmIspratnica() }, // Example: same report for different document types
+            { "Invoice", () => new DefaultFaktura() },
+            { "Faktura", () => new DefaultFaktura() },
+            { "DefaultFaktura", () => new DefaultFaktura() },
             // Add more report mappings as needed:
-            // { "Faktura", () => new frmFaktura() },
             // { "Nalog", () => new frmNalog() },
         };
     }

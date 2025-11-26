@@ -3,6 +3,7 @@ using BSReportService.Models;
 using DevExpress.ReportServer.ServiceModel.DataContracts;
 using System.Data;
 using System.Text;
+using System.Text.Json;
 using System.Xml;
 
 namespace BSReportService.Services;
@@ -158,7 +159,9 @@ public class ReportService : IReportService
         return document.DocumentType.ToLowerInvariant() switch
         {
             "ispratnica" => ReportDataHelper.CreateIspratnicaMainData(document.DocumentId, document.CreatedDate),
-            "invoice" => ReportDataHelper.CreateIspratnicaData(document.DocumentId, document.CreatedDate),
+            "invoice" => ReportDataHelper.CreateFakturaMainData(document.DocumentId, document.CreatedDate),
+            "faktura" => ReportDataHelper.CreateFakturaMainData(document.DocumentId, document.CreatedDate),
+            "defaultfaktura" => ReportDataHelper.CreateFakturaMainData(document.DocumentId, document.CreatedDate),
             _ => ReportDataHelper.CreateCustomReportData(document.DocumentId, document.CreatedDate)
         };
     }
@@ -238,9 +241,37 @@ public class ReportService : IReportService
                 };
             }
 
-            // Process XML data if provided
+            // Process XML or JSON data if provided
             object? reportData = null;
-            if (!string.IsNullOrEmpty(request.XmlDataBase64))
+            if (!string.IsNullOrEmpty(request.JsonDataBase64))
+            {
+                try
+                {
+                    _logger.LogInformation("Decoding and parsing JSON data");
+                    var jsonBytes = Convert.FromBase64String(request.JsonDataBase64);
+                    var jsonString = Encoding.UTF8.GetString(jsonBytes);
+                    
+                    // Parse JSON to DataSet for DevExpress reports
+                    reportData = ParseJsonToDataSet(jsonString);
+                    _logger.LogInformation("Successfully parsed JSON data");
+                }
+                catch (FormatException ex)
+                {
+                    _logger.LogError(ex, "Invalid base64 string in JsonDataBase64");
+                    throw new FormatException("Invalid base64 string", ex);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to parse JSON data");
+                    return new ExportSingleReportResponse
+                    {
+                        ReportType = request.ReportType,
+                        Status = "Error",
+                        ErrorMessage = $"Failed to parse JSON data: {ex.Message}"
+                    };
+                }
+            }
+            else if (!string.IsNullOrEmpty(request.XmlDataBase64))
             {
                 try
                 {
@@ -270,8 +301,8 @@ public class ReportService : IReportService
             }
             else
             {
-                // Use parameters to create dummy data if no XML provided
-                _logger.LogInformation("No XML data provided, using parameters");
+                // Use parameters to create dummy data if no XML/JSON provided
+                _logger.LogInformation("No XML or JSON data provided, using parameters");
                 var documentId = request.Parameters?.GetValueOrDefault("DocumentId") ?? "DEFAULT-001";
                 reportData = CreateDataFromParameters(request.ReportType, request.Parameters);
             }
@@ -381,6 +412,156 @@ public class ReportService : IReportService
         }
 
         return dataSet;
+    }
+
+    private DataSet ParseJsonToDataSet(string jsonString)
+    {
+        var dataSet = new DataSet("ReportData");
+        
+        try
+        {
+            // Parse JSON to JsonDocument
+            using var jsonDoc = JsonDocument.Parse(jsonString);
+            var root = jsonDoc.RootElement;
+
+            // Check if the root is an array or object
+            if (root.ValueKind == JsonValueKind.Array)
+            {
+                // If it's an array, create a single table with items
+                var table = CreateTableFromJsonArray(root, "Items");
+                dataSet.Tables.Add(table);
+            }
+            else if (root.ValueKind == JsonValueKind.Object)
+            {
+                // Process each property as potential tables
+                foreach (var property in root.EnumerateObject())
+                {
+                    if (property.Value.ValueKind == JsonValueKind.Array)
+                    {
+                        // Create a table for array properties
+                        var table = CreateTableFromJsonArray(property.Value, property.Name);
+                        dataSet.Tables.Add(table);
+                    }
+                    else if (property.Value.ValueKind == JsonValueKind.Object)
+                    {
+                        // Create a table for nested objects
+                        var table = CreateTableFromJsonObject(property.Value, property.Name);
+                        dataSet.Tables.Add(table);
+                    }
+                }
+
+                // Also create a main table with root-level properties
+                var mainTable = CreateTableFromJsonObject(root, "Main");
+                if (mainTable.Columns.Count > 0)
+                {
+                    dataSet.Tables.Add(mainTable);
+                }
+            }
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogError(ex, "Failed to parse JSON string");
+            throw new InvalidOperationException("Invalid JSON format", ex);
+        }
+
+        return dataSet;
+    }
+
+    private DataTable CreateTableFromJsonArray(JsonElement jsonArray, string tableName)
+    {
+        var table = new DataTable(tableName);
+        
+        if (jsonArray.GetArrayLength() == 0)
+        {
+            return table;
+        }
+
+        // Get the first element to determine columns
+        var firstElement = jsonArray.EnumerateArray().FirstOrDefault();
+        if (firstElement.ValueKind == JsonValueKind.Object)
+        {
+            // Add columns based on first object's properties
+            foreach (var prop in firstElement.EnumerateObject())
+            {
+                var columnType = GetColumnType(prop.Value.ValueKind);
+                table.Columns.Add(prop.Name, columnType);
+            }
+
+            // Add rows for all array elements
+            foreach (var element in jsonArray.EnumerateArray())
+            {
+                if (element.ValueKind == JsonValueKind.Object)
+                {
+                    var row = table.NewRow();
+                    foreach (var prop in element.EnumerateObject())
+                    {
+                        if (table.Columns.Contains(prop.Name))
+                        {
+                            row[prop.Name] = GetValueFromJsonElement(prop.Value);
+                        }
+                    }
+                    table.Rows.Add(row);
+                }
+            }
+        }
+
+        return table;
+    }
+
+    private DataTable CreateTableFromJsonObject(JsonElement jsonObject, string tableName)
+    {
+        var table = new DataTable(tableName);
+        
+        // Add columns for non-nested properties
+        foreach (var prop in jsonObject.EnumerateObject())
+        {
+            if (prop.Value.ValueKind != JsonValueKind.Array && 
+                prop.Value.ValueKind != JsonValueKind.Object)
+            {
+                var columnType = GetColumnType(prop.Value.ValueKind);
+                table.Columns.Add(prop.Name, columnType);
+            }
+        }
+
+        // Add a single row with the values
+        if (table.Columns.Count > 0)
+        {
+            var row = table.NewRow();
+            foreach (var prop in jsonObject.EnumerateObject())
+            {
+                if (table.Columns.Contains(prop.Name))
+                {
+                    row[prop.Name] = GetValueFromJsonElement(prop.Value);
+                }
+            }
+            table.Rows.Add(row);
+        }
+
+        return table;
+    }
+
+    private Type GetColumnType(JsonValueKind valueKind)
+    {
+        return valueKind switch
+        {
+            JsonValueKind.String => typeof(string),
+            JsonValueKind.Number => typeof(decimal),
+            JsonValueKind.True or JsonValueKind.False => typeof(bool),
+            _ => typeof(string)
+        };
+    }
+
+    private object GetValueFromJsonElement(JsonElement element)
+    {
+        return element.ValueKind switch
+        {
+            JsonValueKind.String => element.GetString() ?? string.Empty,
+            JsonValueKind.Number => element.TryGetDecimal(out var dec) ? dec : element.GetDouble(),
+            JsonValueKind.True => true,
+            JsonValueKind.False => false,
+            JsonValueKind.Null => DBNull.Value,
+            _ => element.GetRawText()
+        };
     }
 
     private object CreateDataFromParameters(string reportType, Dictionary<string, string>? parameters)

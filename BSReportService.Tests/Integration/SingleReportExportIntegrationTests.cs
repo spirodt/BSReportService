@@ -375,5 +375,287 @@ public class SingleReportExportIntegrationTests : IClassFixture<WebApplicationFa
             result!.Status.Should().Be("Success");
         }
     }
+
+    [Fact]
+    public async Task ExportSingleReport_WithJsonBase64Data_ProcessesSuccessfully()
+    {
+        // Arrange
+        var jsonData = @"{
+            ""DocumentId"": ""FAKT-001"",
+            ""CompanyName"": ""Test Company"",
+            ""Items"": [
+                {
+                    ""Name"": ""Product 1"",
+                    ""Quantity"": 10,
+                    ""Price"": 100.00
+                },
+                {
+                    ""Name"": ""Product 2"",
+                    ""Quantity"": 5,
+                    ""Price"": 50.00
+                }
+            ]
+        }";
+        var jsonBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(jsonData));
+
+        var request = new ExportSingleReportRequest
+        {
+            ReportType = "Faktura",
+            JsonDataBase64 = jsonBase64
+        };
+
+        // Act
+        var response = await _client.PostAsJsonAsync("/api/report/export-single", request);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<ExportSingleReportResponse>();
+        result.Should().NotBeNull();
+        result!.Status.Should().Be("Success");
+        result.PdfContent.Should().NotBeNull();
+        result.PdfContentBase64.Should().NotBeNullOrEmpty();
+    }
+
+    [Fact]
+    public async Task ExportSingleReport_WithComplexJsonStructure_GeneratesPdfCorrectly()
+    {
+        // Arrange
+        var jsonData = @"{
+            ""Header"": {
+                ""DocumentId"": ""FAKT-002"",
+                ""CompanyName"": ""Test Company Ltd."",
+                ""Address"": ""123 Test Street, Test City"",
+                ""Date"": ""2024-01-15""
+            },
+            ""Items"": [
+                {
+                    ""ItemCode"": ""PROD001"",
+                    ""Name"": ""Product 1"",
+                    ""Description"": ""Test Product Description"",
+                    ""Quantity"": 10,
+                    ""UnitPrice"": 100.00,
+                    ""Total"": 1000.00
+                },
+                {
+                    ""ItemCode"": ""PROD002"",
+                    ""Name"": ""Product 2"",
+                    ""Description"": ""Another Test Product"",
+                    ""Quantity"": 5,
+                    ""UnitPrice"": 50.00,
+                    ""Total"": 250.00
+                }
+            ],
+            ""Summary"": {
+                ""Subtotal"": 1250.00,
+                ""Tax"": 250.00,
+                ""Total"": 1500.00
+            }
+        }";
+        var jsonBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(jsonData));
+
+        var request = new ExportSingleReportRequest
+        {
+            ReportType = "Faktura",
+            JsonDataBase64 = jsonBase64
+        };
+
+        // Act
+        var response = await _client.PostAsJsonAsync("/api/report/export-single", request);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<ExportSingleReportResponse>();
+        result.Should().NotBeNull();
+        result!.Status.Should().Be("Success");
+        result.PdfContent.Should().NotBeNull();
+        result.PdfSizeBytes.Should().BeGreaterThan(0);
+    }
+
+    [Fact]
+    public async Task ExportSingleReport_WithInvalidJsonBase64_ReturnsErrorResponse()
+    {
+        // Arrange
+        var request = new ExportSingleReportRequest
+        {
+            ReportType = "Faktura",
+            JsonDataBase64 = "invalid-base64-string!@#$%^&*()"
+        };
+
+        // Act
+        var response = await _client.PostAsJsonAsync("/api/report/export-single", request);
+
+        // Assert
+        var result = await response.Content.ReadFromJsonAsync<ExportSingleReportResponse>();
+        result.Should().NotBeNull();
+        result!.Status.Should().Be("Error");
+        result.ErrorMessage.Should().NotBeNullOrEmpty();
+    }
+
+    [Fact]
+    public async Task ExportSingleReport_WithMalformedJson_ReturnsErrorResponse()
+    {
+        // Arrange
+        var jsonData = "{invalid json structure}";
+        var jsonBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(jsonData));
+
+        var request = new ExportSingleReportRequest
+        {
+            ReportType = "Faktura",
+            JsonDataBase64 = jsonBase64
+        };
+
+        // Act
+        var response = await _client.PostAsJsonAsync("/api/report/export-single", request);
+
+        // Assert
+        var result = await response.Content.ReadFromJsonAsync<ExportSingleReportResponse>();
+        result.Should().NotBeNull();
+        result!.Status.Should().Be("Error");
+        result.ErrorMessage.Should().Contain("JSON");
+    }
+
+    [Fact]
+    public async Task ExportSingleReport_WithJsonArray_ProcessesSuccessfully()
+    {
+        // Arrange
+        var jsonData = @"[
+            {
+                ""Name"": ""Item 1"",
+                ""Quantity"": 10,
+                ""Price"": 100.00
+            },
+            {
+                ""Name"": ""Item 2"",
+                ""Quantity"": 5,
+                ""Price"": 50.00
+            }
+        ]";
+        var jsonBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(jsonData));
+
+        var request = new ExportSingleReportRequest
+        {
+            ReportType = "Faktura",
+            JsonDataBase64 = jsonBase64
+        };
+
+        // Act
+        var response = await _client.PostAsJsonAsync("/api/report/export-single", request);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<ExportSingleReportResponse>();
+        result.Should().NotBeNull();
+        result!.Status.Should().Be("Success");
+    }
+
+    [Fact]
+    public async Task ExportSingleReport_WithBothJsonAndXml_PrefersJson()
+    {
+        // Arrange
+        var jsonData = @"{""DocumentId"": ""JSON-001""}";
+        var jsonBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(jsonData));
+
+        var xmlData = @"<?xml version=""1.0""?><ReportData><DocumentId>XML-001</DocumentId></ReportData>";
+        var xmlBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(xmlData));
+
+        var request = new ExportSingleReportRequest
+        {
+            ReportType = "Faktura",
+            JsonDataBase64 = jsonBase64,
+            XmlDataBase64 = xmlBase64
+        };
+
+        // Act
+        var response = await _client.PostAsJsonAsync("/api/report/export-single", request);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<ExportSingleReportResponse>();
+        result.Should().NotBeNull();
+        result!.Status.Should().Be("Success");
+        // JSON should take precedence
+    }
+
+    [Fact]
+    public async Task ExportSingleReport_FakturaWithJsonData_GeneratesValidPdf()
+    {
+        // Arrange
+        var jsonData = @"{
+            ""Broj"": ""FAKT-2024-001"",
+            ""Datum"": ""15.01.2024"",
+            ""ImeNaFirma"": ""TEST KOMPANIJA DOOEL"",
+            ""Adresa"": ""ul.Testna 123"",
+            ""Telefon"": ""+389 2 123 4567"",
+            ""Items"": [
+                {
+                    ""Artikal"": ""Premium Product"",
+                    ""Kolicina"": 10,
+                    ""Cena"": 150.00,
+                    ""IznosBezDDV"": 1500.00
+                }
+            ]
+        }";
+        var jsonBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(jsonData));
+
+        var request = new ExportSingleReportRequest
+        {
+            ReportType = "Faktura",
+            JsonDataBase64 = jsonBase64
+        };
+
+        // Act
+        var response = await _client.PostAsJsonAsync("/api/report/export-single", request);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<ExportSingleReportResponse>();
+        result.Should().NotBeNull();
+        result!.Status.Should().Be("Success");
+        result.PdfContent.Should().NotBeNull();
+        result.PdfSizeBytes.Should().BeGreaterThan(0);
+
+        // Verify it's a valid PDF by checking the header
+        var pdfHeader = Encoding.ASCII.GetString(result.PdfContent!.Take(5).ToArray());
+        pdfHeader.Should().Be("%PDF-");
+    }
+
+    [Fact]
+    public async Task ExportSingleReport_WithNestedJsonObjects_HandlesCorrectly()
+    {
+        // Arrange
+        var jsonData = @"{
+            ""Invoice"": {
+                ""Number"": ""INV-001"",
+                ""Date"": ""2024-01-15"",
+                ""Customer"": {
+                    ""Name"": ""Test Customer"",
+                    ""Address"": {
+                        ""Street"": ""123 Main St"",
+                        ""City"": ""Test City""
+                    }
+                }
+            },
+            ""LineItems"": [
+                {""Product"": ""Item 1"", ""Qty"": 5, ""Price"": 100},
+                {""Product"": ""Item 2"", ""Qty"": 3, ""Price"": 50}
+            ]
+        }";
+        var jsonBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(jsonData));
+
+        var request = new ExportSingleReportRequest
+        {
+            ReportType = "Faktura",
+            JsonDataBase64 = jsonBase64
+        };
+
+        // Act
+        var response = await _client.PostAsJsonAsync("/api/report/export-single", request);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<ExportSingleReportResponse>();
+        result.Should().NotBeNull();
+        result!.Status.Should().Be("Success");
+    }
 }
 

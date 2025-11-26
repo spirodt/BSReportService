@@ -109,10 +109,27 @@ public class ReportController : ControllerBase
     /// This endpoint is optimized for VBA applications and supports:
     /// - Custom output file paths
     /// - XML data with base64 encoding
+    /// - JSON data with base64 encoding (preferred for modern applications)
     /// - Report parameters
     /// - Both binary PDF content and base64-encoded PDF in the response
     /// 
-    /// **XML Data Format:**
+    /// **JSON Data Format (Recommended):**
+    /// The JSON data should be base64-encoded and follow this structure:
+    /// ```json
+    /// {
+    ///   "DocumentId": "INV-001",
+    ///   "CompanyName": "Test Company",
+    ///   "Items": [
+    ///     {
+    ///       "Name": "Product 1",
+    ///       "Quantity": 10,
+    ///       "Price": 100.00
+    ///     }
+    ///   ]
+    /// }
+    /// ```
+    /// 
+    /// **XML Data Format (Legacy):**
     /// The XML data should be base64-encoded and follow this structure:
     /// ```xml
     /// &lt;?xml version="1.0" encoding="UTF-8"?&gt;
@@ -129,6 +146,15 @@ public class ReportController : ControllerBase
     ///     &lt;/Item&gt;
     ///   &lt;/Items&gt;
     /// &lt;/ReportData&gt;
+    /// ```
+    /// 
+    /// **Example Request (with JSON data):**
+    /// ```json
+    /// {
+    ///   "reportType": "Faktura",
+    ///   "outputPath": "C:\\Reports\\Invoice_001.pdf",
+    ///   "jsonDataBase64": "eyJEb2N1bWVudElkIjoiSU5WLTAwMSIsIkl0ZW1zIjpbXX0="
+    /// }
     /// ```
     /// 
     /// **Example Request (with XML data):**
@@ -151,6 +177,8 @@ public class ReportController : ControllerBase
     ///   }
     /// }
     /// ```
+    /// 
+    /// **Note:** If both JsonDataBase64 and XmlDataBase64 are provided, JSON data takes precedence.
     /// </remarks>
     /// <param name="request">The export request containing report type, data, and output path.</param>
     /// <param name="cancellationToken">Cancellation token to cancel the operation if needed.</param>
