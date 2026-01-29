@@ -36,7 +36,7 @@ public class ReportFactoryTests
 
         // Assert
         report.Should().NotBeNull();
-        report.Should().BeOfType<frmIspratnica>();
+        report.Should().BeOfType<DefaultFaktura>();
     }
 
     [Fact]
