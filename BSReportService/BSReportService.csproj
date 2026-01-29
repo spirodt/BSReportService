@@ -7,6 +7,7 @@
     <InternalsVisibleTo>BSReportService.Tests</InternalsVisibleTo>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);1591</NoWarn>
+    <Platforms>AnyCPU;x64</Platforms>
   </PropertyGroup>
 
   <ItemGroup>
